@@ -1,6 +1,6 @@
 name: 'Deploy to Pantheon'
 description: 'Deploys local GitHub repo to Pantheon using action-deploy-to-remote-repository and Pantheon terminus.'
-author: 'alleyinteractive'
+author: 'padillaco'
 branding:
   icon: 'cloud-lightning'
   color: 'yellow'
@@ -16,7 +16,7 @@ inputs:
     description: 'Comma-separated list of files and directories to exclude from sync'
     required: false
     default: '.git, .gitmodules, .pantheon'
-  ssh-key:
+  ssh_key:
     description: 'SSH key to use for remote repository authentication.'
     required: true
   # Pantheon-specific inputs
@@ -35,23 +35,23 @@ inputs:
   pantheon_env_name:
     description: 'Pantheon environment name to deploy to.'
     required: true
-  autopromote:
-    description: 'Whether to automatically promote the dev environment to test and live after deployment.'
+  autopromote_to:
+    description: 'Whether to automatically promote the dev environment to test or live after deployment.'
     default: 'false'
 
 runs:
   using: 'composite'
   steps:
     - name: Sync to Pantheon
-      uses: alleyinteractive/action-deploy-to-remote-repository@v1
+      uses: padillaco/action-deploy-to-remote-repository@main
       with:
         remote_repo: 'ssh://codeserver.dev.${{ inputs.pantheon_site_id }}@codeserver.dev.${{ inputs.pantheon_site_id }}.drush.in:2222/~/repository.git'
         base_directory: ${{ inputs.base_directory }}
         destination_directory: ${{ inputs.destination_directory }}
         exclude_list: ${{ inputs.exclude_list }}
-        ssh-key: ${{ inputs.ssh-key }}
-        # Special case. If inputs.pantheon_env_name is 'production' or 'dev', use 'master' instead.
-        remote_branch: ${{ inputs.pantheon_env_name == 'production' && 'master' || inputs.pantheon_env_name == 'dev' && 'master' || inputs.pantheon_env_name }}
+        ssh_key: ${{ inputs.ssh_key }}
+        # Special case. If inputs.pantheon_env_name is 'dev', use 'master' instead.
+        remote_branch: ${{ inputs.pantheon_env_name == 'dev' && 'master' || inputs.pantheon_env_name }}
         pantheon: 'true'
     - name: Install terminus
       shell: bash
@@ -66,8 +66,8 @@ runs:
     - name: "Deploy to Pantheon environment ${{ inputs.pantheon_env_name }}"
       shell: bash
       run: |
-        # If the pantheon_env_name is 'production', 'master', or 'dev', deploy to dev.
-        if [ "${{ inputs.pantheon_env_name }}" == "production" ] || [ "${{ inputs.pantheon_env_name }}" == "master" ] || [ "${{ inputs.pantheon_env_name }}" == "dev" ]; then
+        # If the pantheon_env_name is 'master' or 'dev', deploy to dev.
+        if [ "${{ inputs.pantheon_env_name }}" == "master" ] || [ "${{ inputs.pantheon_env_name }}" == "dev" ]; then
           echo "Deploying to dev environment."
           terminus env:deploy ${{ inputs.pantheon_site }}.dev --note="$(git log -1 --pretty=%B)"
         else # Otherwise, deploy to the specified (multisite) environment.
@@ -75,15 +75,13 @@ runs:
           terminus env:deploy ${{ inputs.pantheon_site }}.${{ inputs.pantheon_env_name }} --note="$(git log -1 --pretty=%B)"
         fi
     - name: Autopromote dev to test
-      # Skipped if autopromote is false or we're not deploying to the dev environment.
-      if: ${{ inputs.autopromote == 'true' && (inputs.pantheon_env_name == 'production' || inputs.pantheon_env_name == 'master' || inputs.pantheon_env_name == 'dev') }}
+      if: ${{ (inputs.autopromote_to == 'test' && inputs.autopromote_to == 'live') && (inputs.pantheon_env_name == 'master' || inputs.pantheon_env_name == 'dev') }}
       shell: bash
       run: |
         echo "Autopromoting dev to test."
         terminus env:deploy ${{ inputs.pantheon_site }}.test --note="$(git log -1 --pretty=%B)"
     - name: Autopromote test to live
-      # Skipped if autopromote is false or we're not deploying to the dev environment.
-      if: ${{ inputs.autopromote == 'true' && (inputs.pantheon_env_name == 'production' || inputs.pantheon_env_name == 'master' || inputs.pantheon_env_name == 'dev') }}
+      if: ${{ inputs.autopromote_to == 'live' && (inputs.pantheon_env_name == 'master' || inputs.pantheon_env_name == 'dev') }}
       shell: bash
       run: |
         echo "Autopromoting test to live."
