@@ -40,7 +40,7 @@ jobs:
         ssh_key: ${{ secrets.SSH_KEY }}
 		base_directory: '/'
         destination_directory: '/'
-		exclude_list: '.git, .gitmodules, .pantheon'
+		exclude_list: '.git, .gitmodules'
 
 ```
 
