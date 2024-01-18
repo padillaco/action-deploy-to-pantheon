@@ -35,7 +35,6 @@ jobs:
         pantheon_site: 'your-site-name'
         pantheon_site_id: '12345678-YOUR-SITE-ID00-123456789123'
         pantheon_machine_token: ${{ secrets.SSH_KEY }}
-        pantheon_env_name: ${{ github.ref_name }}
         terminus_version: '3.3.0'
         ssh_key: ${{ secrets.SSH_KEY }}
         base_directory: '/'
@@ -99,13 +98,7 @@ jobs:
 
 - Specify the version of [terminus](https://docs.pantheon.io/terminus) to use.
 - Accepts a string.
-- Defaults to `'3.2.1'`.
-
-### `pantheon_env_name`
-
-- Specify the Pantheon environment name to deploy to.
-- Accepts a string.
-- Required.
+- Defaults to `'3.3.0'`.
 
 ## Changelog
 
