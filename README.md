@@ -1,13 +1,11 @@
 # Deploy to Pantheon
 
-Uses [action-deploy-to-remote-repository](https://github.com/alleyinteractive/action-deploy-to-remote-repository) and Pantheon [terminus](https://docs.pantheon.io/terminus) to deploy files/folders from a local GitHub action repository to a Pantheon environment.
+Uses [action-deploy-to-remote-repository](https://github.com/padillaco/action-deploy-to-remote-repository) and Pantheon [terminus](https://docs.pantheon.io/terminus) to deploy files/folders from a local GitHub action repository to a Pantheon environment.
 
 _Notes_:
 
-- This action depends upon the upstream action [action-deploy-to-remote-repository](https://github.com/alleyinteractive/action-deploy-to-remote-repository) and it's associated requirements (eg. [ssh-key](https://github.com/alleyinteractive/action-deploy-to-remote-repository#ssh-key).
-- This action assumes that `production` branches are deployed to Pantheon `dev` environment (via a git commit to Pantheon's `master` branch), and all other `branch` names are deployed to a Pantheon multisite `branch` environment of the same name (unless overridden with [pantheon_env_name](#pantheon_env_name)).
-- If autopromote is set, the action will use `terminus env:deploy` to advance from `dev` -> `test` -> `live` Pantheon environments.
-- There are special considerations for the [.pantheon folder](#pantheon-folder).
+- This action depends upon the upstream action [action-deploy-to-remote-repository](https://github.com/padillaco/action-deploy-to-remote-repository) and it's associated requirements (eg. [ssh_key](https://github.com/padillaco/action-deploy-to-remote-repository#ssh_key).
+- The `develop` branch is deployed to the Pantheon `dev` environment (via a git commit to Pantheon's `master` branch), and all other branch names are deployed to a Pantheon multidev environment of the same name (unless overridden with [pantheon_env_name](#pantheon_env_name)).
 
 ## Usage
 
@@ -19,7 +17,7 @@ name: Deploy to Pantheon Live
 on:
   push:
     branches:
-      - production
+      - develop
 
 jobs:
   build-and-deploy:
@@ -32,27 +30,23 @@ jobs:
     # ...
 
     - name: Deploy to Pantheon
-      uses: alleyinteractive/action-deploy-to-pantheon@v1
+      uses: padillaco/action-deploy-to-pantheon@main
       with:
         pantheon_site: 'your-site-name'
         pantheon_site_id: '12345678-YOUR-SITE-ID00-123456789123'
         pantheon_machine_token: ${{ secrets.SSH_KEY }}
-        ssh_key: ${{ secrets.SSH_KEY }}
-        destination_directory: 'wp-content/'
-        autopromote: 'true'
         pantheon_env_name: ${{ github.ref_name }}
+		terminus_version: '3.2.1'
+        ssh_key: ${{ secrets.SSH_KEY }}
+		base_directory: '/'
+        destination_directory: '/'
+		exclude_list: '.git, .gitmodules, .pantheon'
 
 ```
 
-### `.pantheon folder`
-
-If a `.pantheon/pantheon.yml` file or `.pantheon/private` folder are present, this action will copy them to the
-root of the repository (as `pantheon.yml` or `./private` respectively). This is useful for projects that are
-rooted at `wp-content` but still want to version control their Pantheon configuration or private files.
-
 ## Inputs
 
-> Specify using `with` keyword. See all upstream inputs for [action-deploy-to-remote-repository](https://github.com/alleyinteractive/action-deploy-to-remote-repository).
+> Specify using `with` keyword. See all upstream inputs for [action-deploy-to-remote-repository](https://github.com/padillaco/action-deploy-to-remote-repository).
 
 ### `base_directory`
 
@@ -76,7 +70,7 @@ rooted at `wp-content` but still want to version control their Pantheon configur
 - Defaults to `.git, .gitmodules, .pantheon`.
 - Inherited from `action-deploy-to-remote-repository`.
 
-### `ssh-key`
+### `ssh_key`
 
 - SSH key to use for remote repository authentication.
 - Accepts a string (private key).
@@ -113,13 +107,6 @@ rooted at `wp-content` but still want to version control their Pantheon configur
 - Accepts a string.
 - Required.
 
-### `autopromote`
-
-- Specify whether to autopromote the deployment to `test` and `live` Pantheon environments.
-- Accepts a string. (e.g. `true` or `false`)
-- Defaults to `false`.
-
-
 ## Changelog
 
 Please see [CHANGELOG](CHANGELOG.md) for more information on what has changed
@@ -127,11 +114,10 @@ recently.
 
 ## Credits
 
-This project is actively maintained by [Alley
-Interactive](https://github.com/alleyinteractive).
+This project was created by [Alley Interactive](https://github.com/alleyinteractive).
 
 - [Ben Bolton](https://github.com/benpbolton)
-- [All Contributors](../../contributors)
+- [All Contributors](https://github.com/alleyinteractive/action-deploy-to-pantheon/graphs/contributors)
 
 ## License
 
