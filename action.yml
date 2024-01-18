@@ -41,13 +41,13 @@ runs:
       env:
         BRANCH: ${{ github.ref_name }}
       id: branch-name-base
-      run: echo "::set-output name=name::$(echo BRANCH | cut -d '/' -f1)"
+      run: echo "branch_name_base=$(echo BRANCH | cut -d '/' -f1)" >> $GITHUB_OUTPUT
     - name: Parse Branch Name (Fragment)
       shell: bash
       env:
         BRANCH: ${{ github.ref_name }}
       id: branch-name-fragment
-      run: echo "::set-output name=name::$(echo BRANCH | cut -d '/' -f2)"
+      run: echo "branch_name_fragment=$(echo BRANCH | cut -d '/' -f2)" >> $GITHUB_OUTPUT
     - name: Sync to Pantheon
       uses: padillaco/action-deploy-to-remote-repository@main
       with:
@@ -56,7 +56,7 @@ runs:
         destination_directory: ${{ inputs.destination_directory }}
         exclude_list: ${{ inputs.exclude_list }}
         ssh_key: ${{ inputs.ssh_key }}
-        remote_branch: ${{ (github.ref_name == 'dev' || github.ref_name == 'staging' || github.ref_name == 'main') && 'master' || steps.branch-name-fragment.outputs.name }}
+        remote_branch: ${{ (github.ref_name == 'dev' || github.ref_name == 'staging' || github.ref_name == 'main') && 'master' || GITHUB_OUTPUT.branch_name_fragment }}
     - name: Install terminus
       shell: bash
       run: |
@@ -68,11 +68,11 @@ runs:
       shell: bash
       run: terminus auth:login --machine-token=${{ inputs.pantheon_machine_token }}
     - name: "Deploy to Pantheon multidev environment"
-      if: ${{ steps.branch-name-base.outputs.name == 'multidev' }}
+      if: ${{ GITHUB_OUTPUT.branch_name_base == 'multidev' }}
       shell: bash
       run: |
         echo "Deploying ${{ github.ref_name }} to multidev environment."
-        terminus env:deploy ${{ inputs.pantheon_site }}.${{ steps.branch-name-fragment.outputs.name }} --note="$(git log -1 --pretty=%B)"
+        terminus env:deploy ${{ inputs.pantheon_site }}.${{ GITHUB_OUTPUT.branch_name_fragment }} --note="$(git log -1 --pretty=%B)"
     - name: "Deploy to Pantheon dev environment"
       if: ${{ github.ref_name == 'develop' }}
       shell: bash
