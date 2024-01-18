@@ -39,15 +39,15 @@ runs:
     - name: Parse Branch Name (Base)
       shell: bash
       env:
-        BRANCH: ${{ github.ref_name }}
+        CURRENT_BRANCH: ${{ github.ref_name }}
       id: branch-name-base
-      run: echo "name=$(echo BRANCH | cut -d '/' -f1)" >> $GITHUB_OUTPUT
+      run: echo "name=$(echo CURRENT_BRANCH | cut -d '/' -f1)" >> $GITHUB_OUTPUT
     - name: Parse Branch Name (Fragment)
       shell: bash
       env:
-        BRANCH: ${{ github.ref_name }}
+        CURRENT_BRANCH: ${{ github.ref_name }}
       id: branch-name-fragment
-      run: echo "name=$(echo BRANCH | cut -d '/' -f2)" >> $GITHUB_OUTPUT
+      run: echo "name=$(echo CURRENT_BRANCH | cut -d '/' -f2)" >> $GITHUB_OUTPUT
     - name: Sync to Pantheon
       if: ${{ github.ref_name == 'develop' || steps.branch-name-base.outputs.name == 'multidev' }}
       uses: padillaco/action-deploy-to-remote-repository@main
