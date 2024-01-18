@@ -70,15 +70,3 @@ runs:
           echo "Deploying to ${{ inputs.pantheon_env_name }} environment."
           terminus env:deploy ${{ inputs.pantheon_site }}.${{ inputs.pantheon_env_name }} --note="$(git log -1 --pretty=%B)"
         fi
-    - name: Autopromote dev to test
-      if: ${{ (inputs.autopromote_to == 'test' && inputs.autopromote_to == 'live') && (inputs.pantheon_env_name == 'master' || inputs.pantheon_env_name == 'dev') }}
-      shell: bash
-      run: |
-        echo "Autopromoting dev to test."
-        terminus env:deploy ${{ inputs.pantheon_site }}.test --note="$(git log -1 --pretty=%B)"
-    - name: Autopromote test to live
-      if: ${{ inputs.autopromote_to == 'live' && (inputs.pantheon_env_name == 'master' || inputs.pantheon_env_name == 'dev') }}
-      shell: bash
-      run: |
-        echo "Autopromoting test to live."
-        terminus env:deploy ${{ inputs.pantheon_site }}.live --note="$(git log -1 --pretty=%B)"
