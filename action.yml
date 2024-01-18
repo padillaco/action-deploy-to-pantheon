@@ -59,7 +59,8 @@ runs:
     - name: Authenticate with Terminus
       shell: bash
       run: terminus auth:login --machine-token=${{ inputs.pantheon_machine_token }}
-    - name: "Deploy to Pantheon environment ${{ inputs.pantheon_env_name }}"
+    - name: "Deploy to Pantheon environment: ${{ inputs.pantheon_env_name }}"
+      if: ${{ github.ref_name == 'develop' }}
       shell: bash
       run: |
         # If the pantheon_env_name is 'master' or 'dev', deploy to dev.
@@ -70,3 +71,15 @@ runs:
           echo "Deploying to ${{ inputs.pantheon_env_name }} environment."
           terminus env:deploy ${{ inputs.pantheon_site }}.${{ inputs.pantheon_env_name }} --note="$(git log -1 --pretty=%B)"
         fi
+    - name: Autopromote dev to test
+      if: ${{ github.ref_name == 'staging' }}
+      shell: bash
+      run: |
+        echo "Autopromoting dev to test."
+        terminus env:deploy ${{ inputs.pantheon_site }}.test --note="$(git log -1 --pretty=%B)"
+    - name: Autopromote test to live
+      if: ${{ github.ref_name == 'main' }}
+      shell: bash
+      run: |
+        echo "Autopromoting test to live."
+        terminus env:deploy ${{ inputs.pantheon_site }}.live --note="$(git log -1 --pretty=%B)"
