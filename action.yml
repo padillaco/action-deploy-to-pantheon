@@ -68,7 +68,7 @@ runs:
       shell: bash
       run: terminus auth:login --machine-token=${{ inputs.pantheon_machine_token }}
     - name: "Deploy to Pantheon multidev environment"
-      if: ${{ steps.branch-name-base.outputs.name == "multidev" }}
+      if: ${{ steps.branch-name-base.outputs.name == 'multidev' }}
       shell: bash
       run: |
         echo "Deploying ${{ github.ref_name }} to multidev environment."
