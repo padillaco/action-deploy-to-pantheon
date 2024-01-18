@@ -44,7 +44,7 @@ runs:
         destination_directory: ${{ inputs.destination_directory }}
         exclude_list: ${{ inputs.exclude_list }}
         ssh_key: ${{ inputs.ssh_key }}
-        remote_branch: ${{ (github.ref_name == 'dev' || github.ref_name == 'staging' || github.ref_name == 'main') && 'master' || (echo ${github.ref_name} | cut -d "/" -f2) }}
+        remote_branch: ${{ (github.ref_name == 'dev' || github.ref_name == 'staging' || github.ref_name == 'main') && 'master' || split(github.ref_name, '/')[1] }}
     - name: Install terminus
       shell: bash
       run: |
@@ -56,11 +56,11 @@ runs:
       shell: bash
       run: terminus auth:login --machine-token=${{ inputs.pantheon_machine_token }}
     - name: "Deploy to Pantheon multidev environment"
-      if: ${{ (echo ${github.ref_name} | cut -d "/" -f1) == "multidev" }}
+      if: ${{ split(github.ref_name, '/')[0] == "multidev" }}
       shell: bash
       run: |
         echo "Deploying ${{ github.ref_name }} to multidev environment."
-        terminus env:deploy ${{ inputs.pantheon_site }}.${{ (echo ${github.ref_name} | cut -d "/" -f2) }} --note="$(git log -1 --pretty=%B)"
+        terminus env:deploy ${{ inputs.pantheon_site }}.${{ split(github.ref_name, '/')[1] }} --note="$(git log -1 --pretty=%B)"
     - name: "Deploy to Pantheon dev environment"
       if: ${{ github.ref_name == 'develop' }}
       shell: bash
