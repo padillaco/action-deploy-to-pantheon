@@ -32,9 +32,6 @@ inputs:
   terminus_version:
     description: 'Version of terminus to use.'
     default: '3.3.0'
-  pantheon_env_name:
-    description: 'Pantheon environment name to deploy to.'
-    required: true
 
 runs:
   using: 'composite'
@@ -47,8 +44,7 @@ runs:
         destination_directory: ${{ inputs.destination_directory }}
         exclude_list: ${{ inputs.exclude_list }}
         ssh_key: ${{ inputs.ssh_key }}
-        # Special case. If inputs.pantheon_env_name is 'dev', use 'master' instead.
-        remote_branch: ${{ inputs.pantheon_env_name == 'dev' && 'master' || inputs.pantheon_env_name }}
+        remote_branch: ${{ (github.ref_name == 'dev' || github.ref_name == 'staging' || github.ref_name == 'main') && 'master' || "$(echo ${github.ref_name} | cut -d "/" -f2)" }}
     - name: Install terminus
       shell: bash
       run: |
@@ -59,18 +55,18 @@ runs:
     - name: Authenticate with Terminus
       shell: bash
       run: terminus auth:login --machine-token=${{ inputs.pantheon_machine_token }}
-    - name: "Deploy to Pantheon environment: ${{ inputs.pantheon_env_name }}"
+    - name: "Deploy to Pantheon multidev environment"
+      if: ${{ "$(echo ${github.ref_name} | cut -d "/" -f1)" == "multidev" }}
+      shell: bash
+      run: |
+        echo "Deploying ${{ github.ref_name }} to multidev environment."
+        terminus env:deploy ${{ inputs.pantheon_site }}.${{ "$(echo ${github.ref_name} | cut -d "/" -f2)" }} --note="$(git log -1 --pretty=%B)"
+    - name: "Deploy to Pantheon dev environment"
       if: ${{ github.ref_name == 'develop' }}
       shell: bash
       run: |
-        # If the pantheon_env_name is 'master' or 'dev', deploy to dev.
-        if [ "${{ inputs.pantheon_env_name }}" == "master" ] || [ "${{ inputs.pantheon_env_name }}" == "dev" ]; then
-          echo "Deploying to dev environment."
-          terminus env:deploy ${{ inputs.pantheon_site }}.dev --note="$(git log -1 --pretty=%B)"
-        else # Otherwise, deploy to the specified (multisite) environment.
-          echo "Deploying to ${{ inputs.pantheon_env_name }} environment."
-          terminus env:deploy ${{ inputs.pantheon_site }}.${{ inputs.pantheon_env_name }} --note="$(git log -1 --pretty=%B)"
-        fi
+        echo "Deploying to dev environment."
+        terminus env:deploy ${{ inputs.pantheon_site }}.dev --note="$(git log -1 --pretty=%B)"
     - name: Autopromote dev to test
       if: ${{ github.ref_name == 'staging' }}
       shell: bash
