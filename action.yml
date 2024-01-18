@@ -1,5 +1,5 @@
 name: 'Deploy to Pantheon'
-description: 'Deploys local GitHub repo to Pantheon using action-deploy-to-remote-repository and Pantheon terminus.'
+description: 'Deploys local GitHub repo to Pantheon.'
 author: 'padillaco'
 branding:
   icon: 'cloud-lightning'
@@ -19,19 +19,12 @@ inputs:
   ssh_key:
     description: 'SSH key to use for remote repository authentication.'
     required: true
-  # Pantheon-specific inputs
   pantheon_site:
     description: 'Name of Pantheon site to deploy to.'
     required: true
   pantheon_site_id:
     description: 'Pantheon site ID to deploy to.'
     required: true
-  pantheon_machine_token:
-    description: 'Pantheon machine token to use.'
-    required: true
-  terminus_version:
-    description: 'Version of terminus to use.'
-    default: '3.3.0'
 
 runs:
   using: 'composite'
@@ -48,47 +41,20 @@ runs:
         CURRENT_BRANCH: ${{ github.ref_name }}
       id: branch-name-fragment
       run: echo "name=$(echo CURRENT_BRANCH | cut -d '/' -f2)" >> $GITHUB_OUTPUT
-    - name: Sync to Pantheon
+    - name: Install rsync
+      run: sudo apt-get install -y rsync
+      shell: bash
+    - name: Deploy to Pantheon
       if: ${{ github.ref_name == 'develop' || steps.branch-name-base.outputs.name == 'multidev' }}
-      uses: padillaco/action-deploy-to-remote-repository@main
-      with:
-        remote_repo: 'ssh://codeserver.dev.${{ inputs.pantheon_site_id }}@codeserver.dev.${{ inputs.pantheon_site_id }}.drush.in:2222/~/repository.git'
-        base_directory: ${{ inputs.base_directory }}
-        destination_directory: ${{ inputs.destination_directory }}
-        exclude_list: ${{ inputs.exclude_list }}
-        ssh_key: ${{ inputs.ssh_key }}
-        remote_branch: ${{ github.ref_name == 'develop' && 'master' || steps.branch-name-fragment.outputs.name }}
-    - name: Install terminus
       shell: bash
-      run: |
-        mkdir -p /tmp/terminus && cd /tmp/terminus
-        curl -L "https://github.com/pantheon-systems/terminus/releases/download/${{ inputs.terminus_version }}/terminus.phar" --output terminus
-        chmod +x terminus
-        sudo mv terminus /usr/local/bin/terminus
-    - name: Authenticate with Terminus
-      shell: bash
-      run: terminus auth:login --machine-token=${{ inputs.pantheon_machine_token }}
-    - name: "Deploy to Pantheon multidev environment"
-      if: ${{ steps.branch-name-base.outputs.name == 'multidev' }}
-      shell: bash
-      run: |
-        echo "Deploying ${{ github.ref_name }} to multidev environment."
-        terminus env:deploy ${{ inputs.pantheon_site }}.${{ steps.branch-name-fragment.outputs.name }} --note="$(git log -1 --pretty=%B)"
-    - name: "Deploy to Pantheon dev environment"
-      if: ${{ github.ref_name == 'develop' }}
-      shell: bash
-      run: |
-        echo "Deploying to dev environment."
-        terminus env:deploy ${{ inputs.pantheon_site }}.dev --note="$(git log -1 --pretty=%B)"
-    - name: Autopromote dev to test
-      if: ${{ github.ref_name == 'staging' }}
-      shell: bash
-      run: |
-        echo "Autopromoting dev to test."
-        terminus env:deploy ${{ inputs.pantheon_site }}.test --note="$(git log -1 --pretty=%B)"
-    - name: Autopromote test to live
-      if: ${{ github.ref_name == 'main' }}
-      shell: bash
-      run: |
-        echo "Autopromoting test to live."
-        terminus env:deploy ${{ inputs.pantheon_site }}.live --note="$(git log -1 --pretty=%B)"
+      id: deploy-to-remote-repository
+      env:
+        BASE_DIRECTORY: ${{ inputs.base_directory }}
+        DESTINATION_DIRECTORY: ${{ inputs.destination_directory }}
+        EXCLUDE_LIST: ${{ inputs.exclude_list }}
+        GIT_SSH_COMMAND: ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i ~/.ssh/private_key
+        REMOTE_BRANCH: ${{ github.ref_name == 'develop' && 'master' || steps.branch-name-fragment.outputs.name }}
+        REMOTE_REPO_DIR: /tmp/remote_repo
+        REMOTE_REPO: 'ssh://codeserver.dev.${{ inputs.pantheon_site_id }}@codeserver.dev.${{ inputs.pantheon_site_id }}.drush.in:2222/~/repository.git'
+        SSH_KEY: ${{ inputs.ssh_key }}
+      run: ${{ github.action_path }}/deploy-to-remote-repository.sh
