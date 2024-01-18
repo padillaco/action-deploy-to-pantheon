@@ -41,14 +41,15 @@ runs:
       env:
         BRANCH: ${{ github.ref_name }}
       id: branch-name-base
-      run: echo "branch_name_base=$(echo BRANCH | cut -d '/' -f1)" >> $GITHUB_OUTPUT
+      run: echo "name=$(echo BRANCH | cut -d '/' -f1)" >> $GITHUB_OUTPUT
     - name: Parse Branch Name (Fragment)
       shell: bash
       env:
         BRANCH: ${{ github.ref_name }}
       id: branch-name-fragment
-      run: echo "branch_name_fragment=$(echo BRANCH | cut -d '/' -f2)" >> $GITHUB_OUTPUT
+      run: echo "name=$(echo BRANCH | cut -d '/' -f2)" >> $GITHUB_OUTPUT
     - name: Sync to Pantheon
+      if: ${{ github.ref_name == 'develop' || steps.branch-name-base.outputs.name == 'multidev' }}
       uses: padillaco/action-deploy-to-remote-repository@main
       with:
         remote_repo: 'ssh://codeserver.dev.${{ inputs.pantheon_site_id }}@codeserver.dev.${{ inputs.pantheon_site_id }}.drush.in:2222/~/repository.git'
@@ -56,7 +57,7 @@ runs:
         destination_directory: ${{ inputs.destination_directory }}
         exclude_list: ${{ inputs.exclude_list }}
         ssh_key: ${{ inputs.ssh_key }}
-        remote_branch: ${{ (github.ref_name == 'dev' || github.ref_name == 'staging' || github.ref_name == 'main') && 'master' || steps.branch-name-fragment.outputs.branch_name_fragment }}
+        remote_branch: ${{ github.ref_name == 'develop' && 'master' || steps.branch-name-fragment.outputs.name }}
     - name: Install terminus
       shell: bash
       run: |
@@ -68,11 +69,11 @@ runs:
       shell: bash
       run: terminus auth:login --machine-token=${{ inputs.pantheon_machine_token }}
     - name: "Deploy to Pantheon multidev environment"
-      if: ${{ steps.branch-name-fragment.outputs.branch_name_base == 'multidev' }}
+      if: ${{ steps.branch-name-base.outputs.name == 'multidev' }}
       shell: bash
       run: |
         echo "Deploying ${{ github.ref_name }} to multidev environment."
-        terminus env:deploy ${{ inputs.pantheon_site }}.${{ steps.branch-name-fragment.outputs.branch_name_fragment }} --note="$(git log -1 --pretty=%B)"
+        terminus env:deploy ${{ inputs.pantheon_site }}.${{ steps.branch-name-fragment.outputs.name }} --note="$(git log -1 --pretty=%B)"
     - name: "Deploy to Pantheon dev environment"
       if: ${{ github.ref_name == 'develop' }}
       shell: bash
