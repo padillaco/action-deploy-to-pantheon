@@ -36,11 +36,11 @@ jobs:
         pantheon_site_id: '12345678-YOUR-SITE-ID00-123456789123'
         pantheon_machine_token: ${{ secrets.SSH_KEY }}
         pantheon_env_name: ${{ github.ref_name }}
-		terminus_version: '3.2.1'
+        terminus_version: '3.2.1'
         ssh_key: ${{ secrets.SSH_KEY }}
-		base_directory: '/'
+        base_directory: '/'
         destination_directory: '/'
-		exclude_list: '.git, .gitmodules'
+        exclude_list: '.git, .github, .gitmodules, node_modules'
 
 ```
 
